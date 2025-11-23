@@ -1,0 +1,7 @@
+google-generativeai
+google-adk
+pandas
+pymongo
+python-dotenv
+pdfplumber
+tabula-py
