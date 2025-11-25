@@ -185,7 +185,7 @@ if page == "upload":
     st.caption("Upload a CSV file. Parsed data will be added to your financial database.")
 
     # NEW: File uploader
-    st.markdown("### 📤 Upload New File")
+    st.markdown("### Upload New File")
     uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
 
     if uploaded_file:
