@@ -1,11 +1,23 @@
 # Tools/chart_tools.py
 
 import os
-from datetime import datetime
 from typing import List, Dict, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
+
+
+# Soft pastel theme
+plt.rcParams.update({
+    "font.size": 11,
+    "axes.edgecolor": "#E0E0E0",
+    "axes.labelcolor": "#444",
+    "xtick.color": "#666",
+    "ytick.color": "#666",
+    "figure.facecolor": "#fafcff",
+})
+
+PASTEL_COLORS = ["#A7C7E7", "#C3E8BD", "#F7D8BA", "#E7C6FF", "#FFDEDE"]
 
 
 def _to_dataframe(transactions: List[Dict]) -> pd.DataFrame:
@@ -60,14 +72,19 @@ def _ensure_output_dir(output_dir: str) -> str:
 def generate_insight_charts(
     transactions: List[Dict],
     output_dir: str = "finova_ui/charts",
-) -> Tuple[str, Dict[str, str]]:
+) -> Tuple[Dict, Dict[str, str]]:
     """
-    Generate charts and a text summary from transactions.
+    Generate charts and structured summary data from transactions.
 
     Returns:
-        summary_text: human readable summary string
+        summary_data: dict with keys:
+            - total_credits
+            - total_debits
+            - net_cashflow
+            - highest_debit: {description, amount, date} or None
+            - highest_credit: {description, amount, date} or None
+            - top_categories: list of {category, amount}
         chart_paths: dict with keys:
-            - "monthly_cashflow"
             - "category_spend"
             - "balance_trend"
           and values as file paths to the saved PNGs.
@@ -79,43 +96,7 @@ def generate_insight_charts(
     chart_paths: Dict[str, str] = {}
 
     # -----------------------------
-    # 1. Monthly Cashflow Chart
-    # -----------------------------
-    if not df["date"].isna().all():
-        df["year_month"] = df["date"].dt.to_period("M").astype(str)
-        monthly = df.groupby("year_month").agg(
-            total_credit=("credit", "sum"),
-            total_debit=("debit", "sum"),
-            net=("net", "sum"),
-        )
-        monthly = monthly.reset_index()
-
-        plt.figure()
-        x = range(len(monthly))
-        width = 0.35
-
-        plt.bar(x, monthly["total_credit"], width=width, label="Credits")
-        plt.bar(
-            [i + width for i in x],
-            monthly["total_debit"],
-            width=width,
-            label="Debits",
-        )
-        plt.xticks([i + width / 2 for i in x], monthly["year_month"], rotation=45)
-        plt.ylabel("Amount")
-        plt.title("Monthly Credits and Debits")
-        plt.legend()
-        plt.tight_layout()
-
-        monthly_path = os.path.join(output_dir, "monthly_cashflow.png")
-        plt.savefig(monthly_path)
-        plt.close()
-        chart_paths["monthly_cashflow"] = monthly_path
-    else:
-        monthly = None
-
-    # -----------------------------
-    # 2. Category Spending Pie Chart
+    # 1. Category Spending Pie Chart (Debits only)
     # -----------------------------
     debit_only = df[df["debit"] > 0]
     if not debit_only.empty:
@@ -128,6 +109,7 @@ def generate_insight_charts(
             labels=cat["category"],
             autopct="%1.1f%%",
             startangle=140,
+            colors=PASTEL_COLORS,
         )
         plt.title("Spending by Category (Debits)")
         plt.tight_layout()
@@ -138,7 +120,7 @@ def generate_insight_charts(
         chart_paths["category_spend"] = cat_path
 
     # -----------------------------
-    # 3. Daily Balance Trend Line Chart
+    # 2. Daily Balance Trend Line Chart
     # -----------------------------
     if "balance" in df.columns:
         bal_df = df.dropna(subset=["date", "balance"]).copy()
@@ -159,59 +141,50 @@ def generate_insight_charts(
             chart_paths["balance_trend"] = bal_path
 
     # -----------------------------
-    # 4. Build summary text
+    # 3. Build structured summary data
     # -----------------------------
-    total_debits = df["debit"].sum()
-    total_credits = df["credit"].sum()
+    total_debits = float(df["debit"].sum())
+    total_credits = float(df["credit"].sum())
     net_total = total_credits - total_debits
 
-    highest_debit = df.iloc[df["debit"].idxmax()] if (df["debit"] > 0).any() else None
-    highest_credit = df.iloc[df["credit"].idxmax()] if (df["credit"] > 0).any() else None
+    highest_debit = None
+    if (df["debit"] > 0).any():
+        row = df.loc[df["debit"].idxmax()]
+        date_str = row["date"].date().isoformat() if not pd.isna(row["date"]) else ""
+        highest_debit = {
+            "description": str(row["description"]),
+            "amount": float(row["debit"]),
+            "date": date_str,
+        }
 
-    top_cat_text = ""
+    highest_credit = None
+    if (df["credit"] > 0).any():
+        row = df.loc[df["credit"].idxmax()]
+        date_str = row["date"].date().isoformat() if not pd.isna(row["date"]) else ""
+        highest_credit = {
+            "description": str(row["description"]),
+            "amount": float(row["credit"]),
+            "date": date_str,
+        }
+
+    top_categories_list = []
     if not debit_only.empty:
         top_cat = debit_only.groupby("category")["debit"].sum().sort_values(
             ascending=False
         )
-        top_cat_text_lines = [
-            f"  - {cat}: ₹{amt:,.2f}" for cat, amt in top_cat.head(5).items()
-        ]
-        top_cat_text = "\n".join(top_cat_text_lines)
-
-    summary_lines = []
-    summary_lines.append("=== Agent 4: Financial Insights Summary ===")
-    summary_lines.append("")
-    summary_lines.append(f"Total Credits: ₹{total_credits:,.2f}")
-    summary_lines.append(f"Total Debits: ₹{total_debits:,.2f}")
-    summary_lines.append(f"Net Cashflow: ₹{net_total:,.2f}")
-    summary_lines.append("")
-
-    if highest_debit is not None:
-        summary_lines.append("Highest Debit Transaction:")
-        summary_lines.append(f"  - Date: {highest_debit['date'].date()}")
-        summary_lines.append(f"  - Description: {highest_debit['description']}")
-        summary_lines.append(f"  - Amount: ₹{highest_debit['debit']:,.2f}")
-        summary_lines.append("")
-
-    if highest_credit is not None:
-        summary_lines.append("Highest Credit Transaction:")
-        summary_lines.append(f"  - Date: {highest_credit['date'].date()}")
-        summary_lines.append(f"  - Description: {highest_credit['description']}")
-        summary_lines.append(f"  - Amount: ₹{highest_credit['credit']:,.2f}")
-        summary_lines.append("")
-
-    if top_cat_text:
-        summary_lines.append("Top Spending Categories (by debit):")
-        summary_lines.append(top_cat_text)
-        summary_lines.append("")
-
-    if monthly is not None and not monthly.empty:
-        summary_lines.append("Monthly Net Cashflow:")
-        for _, row in monthly.iterrows():
-            summary_lines.append(
-                f"  - {row['year_month']}: ₹{row['net']:,.2f}"
+        for cat_name, amt in top_cat.head(5).items():
+            top_categories_list.append(
+                {"category": str(cat_name), "amount": float(amt)}
             )
 
-    summary_text = "\n".join(summary_lines)
+    summary_data: Dict = {
+        "total_credits": total_credits,
+        "total_debits": total_debits,
+        "net_cashflow": net_total,
+        "highest_debit": highest_debit,
+        "highest_credit": highest_credit,
+        "top_categories": top_categories_list,
+    }
 
-    return summary_text, chart_paths
+    return summary_data, chart_paths
+
