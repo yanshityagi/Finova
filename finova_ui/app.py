@@ -40,7 +40,7 @@ except ImportError:
 def get_transactions():
     """Fetch all transactions from MongoDB."""
     client = get_mongo_client()
-    db = client[os.getenv("FINOVA_DB_NAME", "finova")]
+    db = client[os.getenv("FINOVA_DB_NAME")]
     return list(db["transactions"].find({}, {"_id": 0}))
 
 

@@ -26,7 +26,11 @@ from agents.agent1_email_monitor import email_monitor_agent
 APP_NAME = "finova_app"
 USER_ID = "finova_user"
 SESSION_ID_EMAIL = "session_email_1"
+DB_NAME = os.getenv("FINOVA_DB_NAME")
 
+# Fail fast if DB_NAME is not provided
+if not DB_NAME:
+    raise RuntimeError("Environment variable FINOVA_DB_NAME is required but not set or empty. Please set FINOVA_DB_NAME before running.")
 
 def clean_json(text: str) -> str:
     """
@@ -165,8 +169,8 @@ async def main():
     # ---------------------------------------
     # Agent 1 — Email Monitor
     # ---------------------------------------
-    email_json_text = await run_agent1_email_monitor()
-    email_json = json.loads(email_json_text)
+    # email_json_text = await run_agent1_email_monitor()
+    # email_json = json.loads(email_json_text)
 
     # ---------------------------------------
     # Agent 2 — Classifier
@@ -203,9 +207,9 @@ async def main():
     # ---------------------------------------
     print("\n=== Agent 3.3: Storing Transactions into MongoDB ===")
     from Tools.mongo_tools import insert_transactions, list_transactions
-
+ 
     result = insert_transactions(
-        db_name="finova",
+        db_name=DB_NAME,
         collection_name="transactions",
         transactions=transactions,
     )
@@ -213,7 +217,7 @@ async def main():
     print(result)
 
     print("\n=== Sample from Mongo ===")
-    sample = list_transactions("finova_db", "transactions", limit=3)
+    sample = list_transactions(DB_NAME, "transactions", limit=3)
     for doc in sample:
         print(doc)
 
