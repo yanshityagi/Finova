@@ -1,4 +1,8 @@
 import os
+
+import pandas as pd
+
+from Tools.mongo_tools import get_mongo_client
 print("=== DEBUG: Current Working Directory ===")
 print(os.getcwd())
 print("=== DEBUG: Files in this directory ===")
@@ -158,6 +162,33 @@ Your job:
     print("----------------------")
 
     return final_text
+
+
+# ============================================================
+# AGENT 3 — STORAGE AGENT - SAVE INTO MONGODB
+# ============================================================
+async def save_transactions(json_content: str, filename: str) -> bool:
+
+    from agents.agent3_storage import storage_agent
+    
+    client = get_mongo_client()
+    db = client[os.getenv("FINOVA_DB_NAME")]
+    col = db["transactions"]
+    uploads_col = db["uploaded_files"]
+    txn_count = len(json_content["transactions"])
+
+    # Insert transactions
+    for tx in json_content["transactions"]:
+        col.insert_one(tx)
+
+    # Save upload info
+    uploads_col.insert_one({
+        "filename": filename,
+        "uploaded_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "transaction_count": len(json_content["transactions"]),
+        "bank_name": "User Upload"
+    })
+    return True
 
 
 # ============================================================

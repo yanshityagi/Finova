@@ -17,7 +17,7 @@ from Tools.csv_tools import parse_statement_csv
 
 from agents.agent1_email_monitor import email_monitor_agent
 
-from main import parse_file, run_agent6_categorizer
+from main import parse_file, run_agent6_categorizer, save_transactions
 
 # ======================================================
 # Load .env
@@ -230,24 +230,9 @@ if page == "upload":
             }
 
             print(parsed)
-
-            # Reconnect inside this block (fix)
-            client = get_mongo_client()
-            db = client[os.getenv("FINOVA_DB_NAME")]
-            col = db["transactions"]
-            uploads_col = db["uploaded_files"]
-
-            # Insert transactions
-            for tx in parsed["transactions"]:
-                col.insert_one(tx)
-
-            # Save upload info
-            uploads_col.insert_one({
-                "filename": uploaded_file.name,
-                "uploaded_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "transaction_count": len(parsed["transactions"]),
-                "bank_name": "User Upload"
-            })
+            print("saving transactions")
+            saved = asyncio.run(save_transactions(parsed, uploaded_file.name))
+            if saved: print ("Saved")
 
         st.success("File uploaded and processed successfully!")
         st.info("You can now check the Dashboard or chat with Finova.")
