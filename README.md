@@ -79,32 +79,32 @@ flowchart TD
     %% Client
     U[User Browser] --> S[Streamlit Web App]
 
-    %% Upload + Preprocessing
+    %% Upload
     S -->|Upload Bank Statement| F[Statement File]
 
     %% Classification
-    F --> C[agent2_classifier<br/>LLM-based Statement Classifier]
-    C -->|Statement Type| P[agent3_parser<br/>LLM-based Statement Parser]
+    F --> C[agent2_classifier\nLLM Statement Classifier]
+    C -->|Statement Type| P[agent3_parser\nLLM Statement Parser]
 
-    %% Parsing to Canonical Structure
-    P -->|Canonical Transactions| CAT[agent6_categorizer<br/>LLM-based Transaction Categorizer]
+    %% Parsing → Canonical Structure
+    P -->|Parsed Transactions| CAT[agent6_categorizer\nLLM Transaction Categorizer]
 
-    %% Categorization
-    CAT -->|Categorized Transactions| DB[(MongoDB Atlas<br/>transactions collection)]
+    %% Categorization → Database
+    CAT -->|Categorized Transactions| DB[(MongoDB Atlas\ntransactions collection)]
 
     %% Analytics Dashboard
-    S --> D[Analytics Dashboard<br/>(Statement & Category Views)]
+    S --> D[Analytics Dashboard]
     DB --> D
 
     %% Chatbot
     S --> CHAT_UI[Chatbot UI]
-    CHAT_UI --> A5[agent5_chat<br/>LLM-based Chat Agent]
+    CHAT_UI --> A5[agent5_chat\nLLM Chat Agent]
     A5 -->|Query & Context| DB
-    DB -->|Relevant Transactions & Aggregates| A5
+    DB -->|Relevant Data| A5
     A5 --> CHAT_UI
 
     %% External LLM Provider
-    subgraph LLM_Provider[LLM Provider (e.g. Google Gemini)]
+    subgraph LLM_Provider[LLM Provider]
         LLM1[(LLM API)]
     end
 
@@ -112,6 +112,7 @@ flowchart TD
     P --> LLM1
     CAT --> LLM1
     A5 --> LLM1
+
 ```
 
 ### Component Overview
