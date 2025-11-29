@@ -229,5 +229,5 @@ sequenceDiagram
 - **Google Gemini API**: Large language model for AI-powered financial analysis
 
 # Demo
-Video URL: 
+Video URL: https://youtu.be/_psGQwsVHAw
 
