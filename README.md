@@ -172,9 +172,7 @@ flowchart TD
   * Accessed via API using the configured `GOOGLE_API_KEY`.
 
 
-# Architecture Overview
-
-## High-Level User Flow
+## Sequence Diagram
 
 ```mermaid
 sequenceDiagram
