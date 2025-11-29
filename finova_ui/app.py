@@ -191,7 +191,7 @@ def _metric_card(title, value, emoji="", subtitle=None):
 
 
 # ======================================================
-# PAGE: UPLOAD STATEMENT (UPDATED)
+# PAGE: UPLOAD STATEMENT
 # ======================================================
 if page == "upload":
     st.title("📤 Upload Bank Statement")
@@ -274,7 +274,7 @@ if page == "upload":
 
 
 # ======================================================
-# PAGE: DASHBOARD (UNCHANGED)
+# PAGE: DASHBOARD
 # ======================================================
 elif page == "dashboard":
     st.title("📊 Financial Insights Dashboard")
@@ -283,7 +283,7 @@ elif page == "dashboard":
         transactions = get_transactions()
 
     if not transactions:
-        st.warning("No transactions found. Run `python main.py` first.")
+        st.warning("No transactions found. Upload a statement in CSV format.")
     else:
         summary_data, chart_paths = generate_insight_charts(transactions)
 
