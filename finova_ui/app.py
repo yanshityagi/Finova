@@ -366,7 +366,7 @@ elif page == "dashboard":
 
 
 # ======================================================
-# PAGE: CHAT (UNCHANGED)
+# PAGE: CHAT
 # ======================================================
 elif page == "chat":
     st.title("💬 Chat with Finova")
