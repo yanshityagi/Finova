@@ -64,7 +64,7 @@ def generate_insight_charts(
     """
     output_dir = _ensure_output_dir(output_dir)
     df = _to_dataframe(transactions)
-
+    print(df)
     chart_paths: Dict[str, str] = {}
 
     # -----------------------------
@@ -90,6 +90,7 @@ def generate_insight_charts(
         plt.savefig(cat_path)
         plt.close()
         chart_paths["category_spend"] = cat_path
+        print("Cat Path: " + cat_path)
 
     # -----------------------------
     # 2. Daily Balance Trend Line Chart
@@ -111,6 +112,7 @@ def generate_insight_charts(
             plt.savefig(bal_path)
             plt.close()
             chart_paths["balance_trend"] = bal_path
+            print("Bal Path: " + bal_path)
 
     # -----------------------------
     # 3. Build structured summary data
