@@ -1,11 +1,23 @@
 # finova_ui/app.py
 
+import asyncio
+import io
 import os
 import sys
 import json
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.memory import InMemoryMemoryService
+from google.genai import types
+
+from Tools.csv_tools import parse_statement_csv
+
+from agents.agent1_email_monitor import email_monitor_agent
+
+from main import parse_file, run_agent6_categorizer, save_transactions
 
 # ======================================================
 # Load .env
@@ -30,6 +42,7 @@ from Tools.csv_tools import parse_statement_csv  # <-- CSV parser
 
 try:
     from google.genai import Client
+    from pathlib import Path
 except ImportError:
     Client = None
 
@@ -40,7 +53,7 @@ except ImportError:
 def get_transactions():
     """Fetch all transactions from MongoDB."""
     client = get_mongo_client()
-    db = client[os.getenv("FINOVA_DB_NAME", "finova")]
+    db = client[os.getenv("FINOVA_DB_NAME")]
     return list(db["transactions"].find({}, {"_id": 0}))
 
 
@@ -178,7 +191,7 @@ def _metric_card(title, value, emoji="", subtitle=None):
 
 
 # ======================================================
-# PAGE: UPLOAD STATEMENT (UPDATED)
+# PAGE: UPLOAD STATEMENT
 # ======================================================
 if page == "upload":
     st.title("📤 Upload Bank Statement")
@@ -189,6 +202,14 @@ if page == "upload":
     uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
 
     if uploaded_file:
+        filename = uploaded_file.name if hasattr(uploaded_file, "name") else ""
+        suffix = Path(filename).suffix.lower()
+
+        if suffix != ".csv":
+            # do not proceed with processing
+            st.error("Unsupported file type. Please upload a CSV file.")
+            st.stop()
+        
         with st.spinner("Processing file..."):
 
             parsed = parse_statement_csv(
@@ -198,23 +219,20 @@ if page == "upload":
                 account_id="USER001"
             )
 
-            # Reconnect inside this block (fix)
-            client = get_mongo_client()
-            db = client[os.getenv("FINOVA_DB_NAME")]
-            col = db["transactions"]
-            uploads_col = db["uploaded_files"]
+            parsed_csv = pd.DataFrame(parsed["transactions"]).to_csv(index=False)
+            categorized = asyncio.run(run_agent6_categorizer(parsed_csv))
+            df = pd.read_csv(io.StringIO(categorized))
+            records = df.to_dict(orient="records")
+            parsed = {
+                "bank_name": records[0]["bank_name"] if records else None,
+                "account_id": records[0]["account_id"] if records else None,
+                "transactions": records
+            }
 
-            # Insert transactions
-            for tx in parsed["transactions"]:
-                col.insert_one(tx)
-
-            # Save upload info
-            uploads_col.insert_one({
-                "filename": uploaded_file.name,
-                "uploaded_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "transaction_count": len(parsed["transactions"]),
-                "bank_name": "User Upload"
-            })
+            print(parsed)
+            print("saving transactions")
+            saved = asyncio.run(save_transactions(parsed, uploaded_file.name))
+            if saved: print ("Saved")
 
         st.success("File uploaded and processed successfully!")
         st.info("You can now check the Dashboard or chat with Finova.")
@@ -256,7 +274,7 @@ if page == "upload":
 
 
 # ======================================================
-# PAGE: DASHBOARD (UNCHANGED)
+# PAGE: DASHBOARD
 # ======================================================
 elif page == "dashboard":
     st.title("📊 Financial Insights Dashboard")
@@ -265,7 +283,7 @@ elif page == "dashboard":
         transactions = get_transactions()
 
     if not transactions:
-        st.warning("No transactions found. Run `python main.py` first.")
+        st.warning("No transactions found. Upload a statement in CSV format.")
     else:
         summary_data, chart_paths = generate_insight_charts(transactions)
 

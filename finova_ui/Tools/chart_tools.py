@@ -37,33 +37,6 @@ def _to_dataframe(transactions: List[Dict]) -> pd.DataFrame:
     return df
 
 
-def _infer_category(description: str) -> str:
-    """Very simple category inference based on keywords."""
-    desc = description.lower()
-
-    if "rent" in desc:
-        return "Rent"
-    if "grocery" in desc or "supermarket" in desc or "big bazaar" in desc:
-        return "Groceries"
-    if "uber" in desc or "ola" in desc or "transport" in desc or "fuel" in desc:
-        return "Transport"
-    if "restaurant" in desc or "dining" in desc or "cafe" in desc:
-        return "Dining"
-    if "salary" in desc or "credit" in desc or "interest" in desc:
-        return "Income"
-    if "electricity" in desc or "water" in desc or "gas" in desc or "bill" in desc:
-        return "Utilities"
-    if "shopping" in desc or "amazon" in desc or "flipkart" in desc:
-        return "Shopping"
-
-    return "Other"
-
-
-def _add_category_column(df: pd.DataFrame) -> pd.DataFrame:
-    df["category"] = df["description"].apply(_infer_category)
-    return df
-
-
 def _ensure_output_dir(output_dir: str) -> str:
     os.makedirs(output_dir, exist_ok=True)
     return output_dir
@@ -91,7 +64,6 @@ def generate_insight_charts(
     """
     output_dir = _ensure_output_dir(output_dir)
     df = _to_dataframe(transactions)
-    df = _add_category_column(df)
 
     chart_paths: Dict[str, str] = {}
 

@@ -30,6 +30,8 @@ Ask the user clarifying questions if they don't specify a time period or account
 
 If the question is generic personal finance (not about their data),
 answer directly without using tools.
+
+All currencies are in INR (₹).
 """
 
 chat_agent = LlmAgent(
