@@ -172,6 +172,64 @@ flowchart TD
   * Accessed via API using the configured `GOOGLE_API_KEY`.
 
 
-# demo
+# Architecture Overview
+
+## High-Level User Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant FinovaApp as Finova Streamlit App
+    participant Agents as AI Agents
+    participant MongoDB as MongoDB Atlas
+    participant GeminiAPI as Google Gemini API
+
+    Note over User,GeminiAPI: Finova Financial Intelligence Platform
+
+    User->>FinovaApp: Launch Application
+    FinovaApp->>FinovaApp: Initialize UI & Load Environment
+    
+    alt Dashboard Flow
+        User->>FinovaApp: Navigate to Dashboard
+        FinovaApp->>MongoDB: Fetch Transaction Data
+        MongoDB-->>FinovaApp: Return Transactions
+        FinovaApp->>FinovaApp: Generate Financial Insights
+        FinovaApp->>User: Display Charts & Analytics
+        
+    else Upload Flow
+        User->>FinovaApp: Upload Bank Statement (CSV)
+        FinovaApp->>Agents: Agent 2: Classify Bank & Statement Type
+        Agents->>GeminiAPI: Analyze Statement Metadata
+        GeminiAPI-->>Agents: Return Classification
+        FinovaApp->>Agents: Agent 3: Parse & Normalize CSV
+        Agents->>FinovaApp: Return Structured Transactions
+        FinovaApp->>Agents: Agent 6: Categorize Transactions
+        Agents->>GeminiAPI: Categorize Each Transaction
+        GeminiAPI-->>Agents: Return Categories
+        FinovaApp->>MongoDB: Store Processed Transactions
+        MongoDB-->>FinovaApp: Confirm Storage
+        FinovaApp->>User: Show Success & Upload History
+        
+    else Chat Flow
+        User->>FinovaApp: Ask Financial Question
+        FinovaApp->>MongoDB: Fetch Relevant Transaction Data
+        MongoDB-->>FinovaApp: Return Transaction Context
+        FinovaApp->>Agents: Agent 5: Financial Chat Assistant
+        Agents->>GeminiAPI: Generate Insights with Context
+        GeminiAPI-->>Agents: Return AI Response
+        FinovaApp->>User: Display Financial Analysis & Charts
+    end
+    
+    Note over User,GeminiAPI: Multi-Agent AI System for Financial Intelligence
+```
+
+## Key Components
+
+- **Streamlit App**: Web interface for user interactions and data visualization
+- **AI Agents**: Specialized agents for classification, parsing, categorization, and chat
+- **MongoDB Atlas**: Cloud database for storing processed financial data  
+- **Google Gemini API**: Large language model for AI-powered financial analysis
+
+# Demo
 Video URL: 
 
